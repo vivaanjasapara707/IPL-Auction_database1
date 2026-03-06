@@ -1,25 +1,14 @@
-import sqlite3
-import pandas as pd
 from flask import Flask, render_template, request, redirect, session
+import sqlite3
 
-app = Flask(__name__)
-app.secret_key = "secret123"
+app = Flask(__name__, template_folder="templates")
+app.secret_key = "ipl_secret"
 
 
+# create database tables if not exist
 def init_db():
     conn = sqlite3.connect("players.db")
     cursor = conn.cursor()
-
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS players(
-        id INTEGER PRIMARY KEY,
-        name TEXT,
-        country TEXT,
-        role TEXT,
-        base_price INTEGER,
-        current_bid INTEGER
-    )
-    """)
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users(
@@ -29,31 +18,27 @@ def init_db():
     )
     """)
 
-    cursor.execute("SELECT COUNT(*) FROM players")
-    count = cursor.fetchone()[0]
-
-    if count == 0:
-        df = pd.read_excel("players.xlsx")
-
-        for _, row in df.iterrows():
-            cursor.execute(
-                "INSERT INTO players VALUES (?,?,?,?,?,?)",
-                (
-                    int(row["id"]),
-                    row["name"],
-                    row["country"],
-                    row["role"],
-                    int(row["base_price"]),
-                    int(row["current_bid"])
-                )
-            )
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS players(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        country TEXT,
+        role TEXT,
+        base_price INTEGER,
+        current_bid INTEGER
+    )
+    """)
 
     conn.commit()
     conn.close()
 
 
+init_db()
+
+
 @app.route("/")
 def home():
+
     if "user" not in session:
         return redirect("/login")
 
@@ -65,14 +50,34 @@ def home():
 
     conn.close()
 
-    return render_template(
-        "index.html",
-        players=players,
-        user=session["user"]
-    )
+    return render_template("index.html", players=players, user=session["user"])
 
 
-@app.route("/login", methods=["GET", "POST"])
+@app.route("/register", methods=["GET","POST"])
+def register():
+
+    if request.method == "POST":
+
+        username = request.form["username"]
+        password = request.form["password"]
+
+        conn = sqlite3.connect("players.db")
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "INSERT INTO users (username,password) VALUES (?,?)",
+            (username,password)
+        )
+
+        conn.commit()
+        conn.close()
+
+        return redirect("/login")
+
+    return render_template("register.html")
+
+
+@app.route("/login", methods=["GET","POST"])
 def login():
 
     if request.method == "POST":
@@ -85,72 +90,43 @@ def login():
 
         cursor.execute(
             "SELECT * FROM users WHERE username=? AND password=?",
-            (username, password)
+            (username,password)
         )
 
         user = cursor.fetchone()
+
         conn.close()
 
         if user:
             session["user"] = username
             return redirect("/")
+        else:
+            return "Invalid login"
 
     return render_template("login.html")
 
 
-@app.route("/register", methods=["GET","POST"])
-def register():
-
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-
-        conn = sqlite3.connect("players.db")
-        cursor = conn.cursor()
-
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT,
-            password TEXT
-        )
-        """)
-
-        cursor.execute(
-            "INSERT INTO users (username,password) VALUES (?,?)",
-            (username, password)
-        )
-
-        conn.commit()
-        conn.close()
-
-        return redirect("/login")
-
-    return render_template("register.html")
-
-
 @app.route("/logout")
 def logout():
-    session.clear()
+    session.pop("user", None)
     return redirect("/login")
 
 
-@app.route("/bid/<int:id>", methods=["POST"])
-def bid(id):
+@app.route("/bid/<int:player_id>", methods=["POST"])
+def bid(player_id):
 
-    bid = int(request.form["bid"])
+    if "user" not in session:
+        return redirect("/login")
+
+    bid_amount = request.form["bid"]
 
     conn = sqlite3.connect("players.db")
     cursor = conn.cursor()
 
-    cursor.execute("SELECT current_bid FROM players WHERE id=?", (id,))
-    current = cursor.fetchone()[0]
-
-    if bid > current:
-        cursor.execute(
-            "UPDATE players SET current_bid=? WHERE id=?",
-            (bid, id)
-        )
+    cursor.execute(
+        "UPDATE players SET current_bid=? WHERE id=?",
+        (bid_amount, player_id)
+    )
 
     conn.commit()
     conn.close()
@@ -159,6 +135,4 @@ def bid(id):
 
 
 if __name__ == "__main__":
-    init_db()
-    app.run()
-
+    app.run(debug=True)
