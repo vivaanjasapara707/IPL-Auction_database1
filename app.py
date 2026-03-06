@@ -3,14 +3,23 @@ import sqlite3
 import pandas as pd
 
 app = Flask(__name__)
-app.secret_key = "iplauctionsecret"
+app.secret_key = "secretkey"
 
 
-# ---------- LOAD PLAYERS FROM EXCEL ----------
-def load_players():
+def init_db():
     conn = sqlite3.connect("players.db")
     cursor = conn.cursor()
 
+    # USERS TABLE
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS users(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT,
+        password TEXT
+    )
+    """)
+
+    # PLAYERS TABLE
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS players(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -28,45 +37,24 @@ def load_players():
     if count == 0:
         df = pd.read_excel("players.xlsx")
 
-        for _, row in df.iterrows():
+        for row in df.values:
+            name = row[0]
+            country = row[1]
+            role = row[2]
+            base_price = int(row[3])
+
             cursor.execute("""
             INSERT INTO players(name,country,role,base_price,current_bid)
             VALUES(?,?,?,?,?)
-            """,(
-                row["Player"],
-                row["Country"],
-                row["Role"],
-                row["Base Price"],
-                row["Base Price"]
-            ))
-
-        conn.commit()
-
-    conn.close()
-
-
-# ---------- CREATE USERS TABLE ----------
-def create_users():
-    conn = sqlite3.connect("players.db")
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS users(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT,
-        password TEXT
-    )
-    """)
+            """,(name,country,role,base_price,base_price))
 
     conn.commit()
     conn.close()
 
 
-load_players()
-create_users()
+init_db()
 
 
-# ---------- HOME ----------
 @app.route("/")
 def home():
 
@@ -84,7 +72,6 @@ def home():
     return render_template("index.html", players=players, user=session["user"])
 
 
-# ---------- ROLE FILTER ----------
 @app.route("/role/<role>")
 def role(role):
 
@@ -102,16 +89,18 @@ def role(role):
     return render_template("index.html", players=players, user=session["user"])
 
 
-# ---------- BID ----------
 @app.route("/bid/<int:id>", methods=["POST"])
 def bid(id):
 
-    bid = int(request.form["bid"])
+    bid_amount = int(request.form["bid"])
 
     conn = sqlite3.connect("players.db")
     cursor = conn.cursor()
 
-    cursor.execute("UPDATE players SET current_bid=? WHERE id=?", (bid, id))
+    cursor.execute(
+        "UPDATE players SET current_bid=? WHERE id=?",
+        (bid_amount, id)
+    )
 
     conn.commit()
     conn.close()
@@ -119,7 +108,6 @@ def bid(id):
     return redirect("/")
 
 
-# ---------- REGISTER ----------
 @app.route("/register", methods=["GET","POST"])
 def register():
 
@@ -132,7 +120,7 @@ def register():
         cursor = conn.cursor()
 
         cursor.execute(
-            "INSERT INTO users(username,password) VALUES(?,?)",
+            "INSERT INTO users(username,password) VALUES (?,?)",
             (username,password)
         )
 
@@ -144,7 +132,6 @@ def register():
     return render_template("register.html")
 
 
-# ---------- LOGIN ----------
 @app.route("/login", methods=["GET","POST"])
 def login():
 
@@ -171,7 +158,6 @@ def login():
     return render_template("login.html")
 
 
-# ---------- LOGOUT ----------
 @app.route("/logout")
 def logout():
     session.clear()
