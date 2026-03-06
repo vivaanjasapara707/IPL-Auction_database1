@@ -1,8 +1,7 @@
 from flask import Flask, render_template, request, redirect, session
 import sqlite3
-import os
 
-app = Flask(__name__, template_folder="templates")
+app = Flask(__name__)
 app.secret_key = "secret123"
 
 
@@ -11,7 +10,6 @@ def init_db():
     conn = sqlite3.connect("players.db")
     cursor = conn.cursor()
 
-    # Users table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -20,7 +18,6 @@ def init_db():
     )
     """)
 
-    # Players table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS players(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -116,9 +113,3 @@ def login():
 def logout():
     session.pop("user", None)
     return redirect("/login")
-
-
-# ---------- RUN SERVER ----------
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
