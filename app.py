@@ -2,6 +2,8 @@ import sqlite3
 import pandas as pd
 from flask import Flask, render_template, request, redirect, session
 
+# Correct Flask initialization
+
 app = Flask(**name**, template_folder="templates")
 app.secret_key = "secret123"
 
