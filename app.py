@@ -1,15 +1,17 @@
 from flask import Flask, render_template, request, redirect, session
 import sqlite3
+import os
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="templates")
 app.secret_key = "secret123"
 
 
+# ---------- DATABASE SETUP ----------
 def init_db():
     conn = sqlite3.connect("players.db")
     cursor = conn.cursor()
 
-    # create users table
+    # Users table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -18,7 +20,7 @@ def init_db():
     )
     """)
 
-    # create players table
+    # Players table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS players(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -37,6 +39,7 @@ def init_db():
 init_db()
 
 
+# ---------- HOME ----------
 @app.route("/")
 def home():
 
@@ -54,6 +57,7 @@ def home():
     return render_template("index.html", players=players, user=session["user"])
 
 
+# ---------- REGISTER ----------
 @app.route("/register", methods=["GET","POST"])
 def register():
 
@@ -78,6 +82,7 @@ def register():
     return render_template("register.html")
 
 
+# ---------- LOGIN ----------
 @app.route("/login", methods=["GET","POST"])
 def login():
 
@@ -95,7 +100,6 @@ def login():
         )
 
         user = cursor.fetchone()
-
         conn.close()
 
         if user:
@@ -107,11 +111,14 @@ def login():
     return render_template("login.html")
 
 
+# ---------- LOGOUT ----------
 @app.route("/logout")
 def logout():
     session.pop("user", None)
     return redirect("/login")
 
 
+# ---------- RUN SERVER ----------
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
