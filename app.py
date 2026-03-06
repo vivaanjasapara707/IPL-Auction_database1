@@ -98,19 +98,26 @@ def login():
     return render_template("login.html")
 
 
-@app.route("/register", methods=["GET", "POST"])
+@app.route("/register", methods=["GET","POST"])
 def register():
 
     if request.method == "POST":
-
-        username = request.form["username"]
-        password = request.form["password"]
+        username = request.form.get("username")
+        password = request.form.get("password")
 
         conn = sqlite3.connect("players.db")
         cursor = conn.cursor()
 
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            password TEXT
+        )
+        """)
+
         cursor.execute(
-            "INSERT INTO users(username,password) VALUES (?,?)",
+            "INSERT INTO users (username,password) VALUES (?,?)",
             (username, password)
         )
 
@@ -154,3 +161,4 @@ def bid(id):
 if __name__ == "__main__":
     init_db()
     app.run()
+
