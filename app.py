@@ -1,9 +1,6 @@
-import os
 import sqlite3
 import pandas as pd
 from flask import Flask, render_template, request, redirect, session
-
-# FORCE Flask to use the templates folder
 
 app = Flask(**name**, template_folder="templates")
 app.secret_key = "secret123"
@@ -32,7 +29,6 @@ CREATE TABLE IF NOT EXISTS users(
 )
 """)
 
-# Load Excel data if DB empty
 cursor.execute("SELECT COUNT(*) FROM players")
 count = cursor.fetchone()[0]
 
@@ -105,6 +101,14 @@ password = request.form["password"]
 ```
     conn = sqlite3.connect("players.db")
     cursor = conn.cursor()
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS users(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT,
+        password TEXT
+    )
+    """)
 
     cursor.execute(
         "INSERT INTO users(username,password) VALUES (?,?)",
