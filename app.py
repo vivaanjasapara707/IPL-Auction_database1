@@ -2,7 +2,7 @@ import sqlite3
 import pandas as pd
 from flask import Flask, render_template, request, redirect, session
 
-app = Flask(**name**, template_folder="templates")
+app = Flask(__name__, template_folder="templates")
 app.secret_key = "secret123"
 
 def init_db():
@@ -152,3 +152,4 @@ return redirect("/")
 if **name** == "**main**":
 init_db()
 app.run(debug=True)
+
