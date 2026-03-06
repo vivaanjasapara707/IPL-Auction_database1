@@ -1,32 +1,61 @@
-@app.route("/register", methods=["GET","POST"])
-def register():
+<!DOCTYPE html>
+<html>
+<head>
+<title>Register</title>
 
-    if request.method == "POST":
+<style>
 
-        username = request.form.get("username")
-        password = request.form.get("password")
+body{
+background:#0f2027;
+font-family:Arial;
+color:white;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+}
 
-        conn = sqlite3.connect("players.db")
-        cursor = conn.cursor()
+.box{
+background:#203a43;
+padding:40px;
+border-radius:10px;
+text-align:center;
+}
 
-        # ensure users table exists
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT,
-            password TEXT
-        )
-        """)
+input{
+padding:10px;
+margin:10px;
+width:200px;
+}
 
-        # insert new user
-        cursor.execute(
-            "INSERT INTO users (username, password) VALUES (?, ?)",
-            (username, password)
-        )
+button{
+padding:10px 20px;
+background:#ff512f;
+border:none;
+color:white;
+cursor:pointer;
+}
 
-        conn.commit()
-        conn.close()
+</style>
 
-        return redirect("/login")
+</head>
 
-    return render_template("register.html")
+<body>
+
+<div class="box">
+
+<h2>Create Account</h2>
+
+<form method="POST">
+
+<input name="username" placeholder="Username"><br>
+<input type="password" name="password" placeholder="Password"><br>
+
+<button>Register</button>
+
+</form>
+
+</div>
+
+</body>
+</html>
