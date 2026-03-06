@@ -5,11 +5,11 @@ app = Flask(__name__)
 app.secret_key = "secret123"
 
 
-# ---------- CREATE DATABASE ----------
 def init_db():
     conn = sqlite3.connect("players.db")
     cursor = conn.cursor()
 
+    # create users table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -18,12 +18,23 @@ def init_db():
     )
     """)
 
+    # create players table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS players(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        country TEXT,
+        role TEXT,
+        base_price INTEGER,
+        current_bid INTEGER
+    )
+    """)
+
     conn.commit()
     conn.close()
 
 
 init_db()
-# ------------------------------------
 
 
 @app.route("/")
@@ -43,7 +54,6 @@ def home():
     return render_template("index.html", players=players, user=session["user"])
 
 
-# ---------- REGISTER ----------
 @app.route("/register", methods=["GET","POST"])
 def register():
 
@@ -68,7 +78,6 @@ def register():
     return render_template("register.html")
 
 
-# ---------- LOGIN ----------
 @app.route("/login", methods=["GET","POST"])
 def login():
 
@@ -98,7 +107,6 @@ def login():
     return render_template("login.html")
 
 
-# ---------- LOGOUT ----------
 @app.route("/logout")
 def logout():
     session.pop("user", None)
