@@ -1,11 +1,11 @@
 from flask import Flask, render_template, request, redirect, session
 import sqlite3
 
-app = Flask(__name__, template_folder="templates")
-app.secret_key = "ipl_secret"
+app = Flask(__name__)
+app.secret_key = "secret123"
 
 
-# create database tables if not exist
+# ---------- CREATE DATABASE ----------
 def init_db():
     conn = sqlite3.connect("players.db")
     cursor = conn.cursor()
@@ -18,22 +18,12 @@ def init_db():
     )
     """)
 
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS players(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        country TEXT,
-        role TEXT,
-        base_price INTEGER,
-        current_bid INTEGER
-    )
-    """)
-
     conn.commit()
     conn.close()
 
 
 init_db()
+# ------------------------------------
 
 
 @app.route("/")
@@ -53,6 +43,7 @@ def home():
     return render_template("index.html", players=players, user=session["user"])
 
 
+# ---------- REGISTER ----------
 @app.route("/register", methods=["GET","POST"])
 def register():
 
@@ -65,7 +56,7 @@ def register():
         cursor = conn.cursor()
 
         cursor.execute(
-            "INSERT INTO users (username,password) VALUES (?,?)",
+            "INSERT INTO users(username,password) VALUES (?,?)",
             (username,password)
         )
 
@@ -77,6 +68,7 @@ def register():
     return render_template("register.html")
 
 
+# ---------- LOGIN ----------
 @app.route("/login", methods=["GET","POST"])
 def login():
 
@@ -106,32 +98,11 @@ def login():
     return render_template("login.html")
 
 
+# ---------- LOGOUT ----------
 @app.route("/logout")
 def logout():
     session.pop("user", None)
     return redirect("/login")
-
-
-@app.route("/bid/<int:player_id>", methods=["POST"])
-def bid(player_id):
-
-    if "user" not in session:
-        return redirect("/login")
-
-    bid_amount = request.form["bid"]
-
-    conn = sqlite3.connect("players.db")
-    cursor = conn.cursor()
-
-    cursor.execute(
-        "UPDATE players SET current_bid=? WHERE id=?",
-        (bid_amount, player_id)
-    )
-
-    conn.commit()
-    conn.close()
-
-    return redirect("/")
 
 
 if __name__ == "__main__":
