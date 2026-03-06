@@ -1,16 +1,15 @@
 from flask import Flask, render_template, request, redirect, session
 import sqlite3
-import pandas as pd
 
 app = Flask(__name__)
-app.secret_key = "secretkey"
+app.secret_key = "secret123"
 
 
+# ---------- DATABASE SETUP ----------
 def init_db():
     conn = sqlite3.connect("players.db")
     cursor = conn.cursor()
 
-    # USERS TABLE
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -19,7 +18,6 @@ def init_db():
     )
     """)
 
-    # PLAYERS TABLE
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS players(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,23 +29,6 @@ def init_db():
     )
     """)
 
-    cursor.execute("SELECT COUNT(*) FROM players")
-    count = cursor.fetchone()[0]
-
-    if count == 0:
-        df = pd.read_excel("players.xlsx")
-
-        for row in df.values:
-            name = row[0]
-            country = row[1]
-            role = row[2]
-            base_price = int(row[3])
-
-            cursor.execute("""
-            INSERT INTO players(name,country,role,base_price,current_bid)
-            VALUES(?,?,?,?,?)
-            """,(name,country,role,base_price,base_price))
-
     conn.commit()
     conn.close()
 
@@ -55,6 +36,7 @@ def init_db():
 init_db()
 
 
+# ---------- HOME ----------
 @app.route("/")
 def home():
 
@@ -72,42 +54,7 @@ def home():
     return render_template("index.html", players=players, user=session["user"])
 
 
-@app.route("/role/<role>")
-def role(role):
-
-    if "user" not in session:
-        return redirect("/login")
-
-    conn = sqlite3.connect("players.db")
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT * FROM players WHERE role=?", (role,))
-    players = cursor.fetchall()
-
-    conn.close()
-
-    return render_template("index.html", players=players, user=session["user"])
-
-
-@app.route("/bid/<int:id>", methods=["POST"])
-def bid(id):
-
-    bid_amount = int(request.form["bid"])
-
-    conn = sqlite3.connect("players.db")
-    cursor = conn.cursor()
-
-    cursor.execute(
-        "UPDATE players SET current_bid=? WHERE id=?",
-        (bid_amount, id)
-    )
-
-    conn.commit()
-    conn.close()
-
-    return redirect("/")
-
-
+# ---------- REGISTER ----------
 @app.route("/register", methods=["GET","POST"])
 def register():
 
@@ -132,6 +79,7 @@ def register():
     return render_template("register.html")
 
 
+# ---------- LOGIN ----------
 @app.route("/login", methods=["GET","POST"])
 def login():
 
@@ -154,15 +102,14 @@ def login():
         if user:
             session["user"] = username
             return redirect("/")
+        else:
+            return "Invalid login"
 
     return render_template("login.html")
 
 
+# ---------- LOGOUT ----------
 @app.route("/logout")
 def logout():
-    session.clear()
+    session.pop("user", None)
     return redirect("/login")
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
