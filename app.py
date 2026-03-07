@@ -7,10 +7,10 @@ app.secret_key = "ipl_secret"
 
 
 def init_db():
+
     conn = sqlite3.connect("players.db")
     cursor = conn.cursor()
 
-    # USERS TABLE
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -19,7 +19,6 @@ def init_db():
     )
     """)
 
-    # PLAYERS TABLE (added team column)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS players(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,29 +37,13 @@ def init_db():
     if count == 0:
 
         df = pd.read_excel("players.xlsx")
-        df.columns = df.columns.str.strip().str.lower()
 
-        name_col = None
-        country_col = None
-        role_col = None
-        price_col = None
+        for row in df.values:
 
-        for col in df.columns:
-            if "player" in col or "name" in col:
-                name_col = col
-            elif "country" in col:
-                country_col = col
-            elif "role" in col:
-                role_col = col
-            elif "price" in col:
-                price_col = col
-
-        for _, row in df.iterrows():
-
-            name = str(row[name_col])
-            country = str(row[country_col])
-            role = str(row[role_col])
-            base_price = int(row[price_col])
+            name = row[0]
+            country = row[1]
+            role = row[2]
+            base_price = int(row[3])
 
             cursor.execute("""
             INSERT INTO players(name,country,role,base_price,current_bid,team)
@@ -95,18 +78,20 @@ def home():
 @app.route("/bid/<int:player_id>", methods=["POST"])
 def bid(player_id):
 
-    team = request.form["team"]
-    bid_amount = int(request.form["bid"])
+    team = request.form.get("team")
+    bid_amount = request.form.get("bid")
+
+    if not team or not bid_amount:
+        return redirect("/")
+
+    bid_amount = int(bid_amount)
 
     conn = sqlite3.connect("players.db")
     cursor = conn.cursor()
 
-    cursor.execute(
-        "SELECT current_bid, team FROM players WHERE id=?",
-        (player_id,)
-    )
-
+    cursor.execute("SELECT current_bid, team FROM players WHERE id=?", (player_id,))
     player = cursor.fetchone()
+
     current_bid = player[0]
     last_team = player[1]
 
@@ -115,15 +100,16 @@ def bid(player_id):
         conn.close()
         return redirect("/")
 
-    # ensure bid is higher
+    # prevent lower bids
     if bid_amount <= current_bid:
         conn.close()
         return redirect("/")
 
-    cursor.execute(
-        "UPDATE players SET current_bid=?, team=? WHERE id=?",
-        (bid_amount, team, player_id)
-    )
+    cursor.execute("""
+    UPDATE players
+    SET current_bid=?, team=?
+    WHERE id=?
+    """,(bid_amount, team, player_id))
 
     conn.commit()
     conn.close()
@@ -142,10 +128,7 @@ def register():
         conn = sqlite3.connect("players.db")
         cursor = conn.cursor()
 
-        cursor.execute(
-            "INSERT INTO users(username,password) VALUES (?,?)",
-            (username,password)
-        )
+        cursor.execute("INSERT INTO users(username,password) VALUES (?,?)",(username,password))
 
         conn.commit()
         conn.close()
@@ -166,11 +149,7 @@ def login():
         conn = sqlite3.connect("players.db")
         cursor = conn.cursor()
 
-        cursor.execute(
-            "SELECT * FROM users WHERE username=? AND password=?",
-            (username,password)
-        )
-
+        cursor.execute("SELECT * FROM users WHERE username=? AND password=?",(username,password))
         user = cursor.fetchone()
 
         conn.close()
@@ -184,5 +163,6 @@ def login():
 
 @app.route("/logout")
 def logout():
+
     session.clear()
     return redirect("/login")
