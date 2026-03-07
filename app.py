@@ -3,7 +3,7 @@ import sqlite3
 import pandas as pd
 
 app = Flask(__name__)
-app.secret_key = "ipl_secret_key"
+app.secret_key = "ipl_secret"
 
 
 def init_db():
@@ -31,41 +31,54 @@ def init_db():
     )
     """)
 
-    # check if players already loaded
     cursor.execute("SELECT COUNT(*) FROM players")
     count = cursor.fetchone()[0]
 
     if count == 0:
-        try:
-            df = pd.read_excel("players.xlsx")
 
-            # insert rows by position (avoids column name errors)
-            for row in df.itertuples(index=False):
+        df = pd.read_excel("players.xlsx")
 
-                name = str(row[0])
-                country = str(row[1])
-                role = str(row[2])
-                base_price = int(row[3])
+        # normalize column names
+        df.columns = df.columns.str.strip().str.lower()
 
-                cursor.execute(
-                    "INSERT INTO players(name,country,role,base_price,current_bid) VALUES(?,?,?,?,?)",
-                    (name, country, role, base_price, base_price)
-                )
+        name_col = None
+        country_col = None
+        role_col = None
+        price_col = None
 
-            conn.commit()
+        for col in df.columns:
+            if "player" in col or "name" in col:
+                name_col = col
+            elif "country" in col:
+                country_col = col
+            elif "role" in col:
+                role_col = col
+            elif "price" in col:
+                price_col = col
 
-        except Exception as e:
-            print("Excel loading error:", e)
+        for _, row in df.iterrows():
+
+            name = str(row[name_col])
+            country = str(row[country_col])
+            role = str(row[role_col])
+            base_price = int(row[price_col])
+
+            cursor.execute("""
+            INSERT INTO players(name,country,role,base_price,current_bid)
+            VALUES(?,?,?,?,?)
+            """,(name,country,role,base_price,base_price))
+
+        conn.commit()
 
     conn.close()
 
 
-# initialize database
 init_db()
 
 
 @app.route("/")
 def home():
+
     if "user" not in session:
         return redirect("/login")
 
@@ -82,6 +95,7 @@ def home():
 
 @app.route("/role/<role>")
 def role(role):
+
     if "user" not in session:
         return redirect("/login")
 
@@ -115,7 +129,7 @@ def bid(player_id):
     return redirect("/")
 
 
-@app.route("/register", methods=["GET", "POST"])
+@app.route("/register", methods=["GET","POST"])
 def register():
 
     if request.method == "POST":
@@ -128,7 +142,7 @@ def register():
 
         cursor.execute(
             "INSERT INTO users(username,password) VALUES (?,?)",
-            (username, password)
+            (username,password)
         )
 
         conn.commit()
@@ -139,7 +153,7 @@ def register():
     return render_template("register.html")
 
 
-@app.route("/login", methods=["GET", "POST"])
+@app.route("/login", methods=["GET","POST"])
 def login():
 
     if request.method == "POST":
@@ -152,7 +166,7 @@ def login():
 
         cursor.execute(
             "SELECT * FROM users WHERE username=? AND password=?",
-            (username, password)
+            (username,password)
         )
 
         user = cursor.fetchone()
