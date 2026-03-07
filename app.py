@@ -38,12 +38,34 @@ def init_db():
 
         df = pd.read_excel("players.xlsx")
 
-        for row in df.values:
+        # normalize column names
+        df.columns = df.columns.str.lower().str.strip()
 
-            name = row[0]
-            country = row[1]
-            role = row[2]
-            base_price = int(row[3])
+        name_col = None
+        country_col = None
+        role_col = None
+        price_col = None
+
+        for col in df.columns:
+
+            if "player" in col or "name" in col:
+                name_col = col
+
+            elif "country" in col:
+                country_col = col
+
+            elif "role" in col:
+                role_col = col
+
+            elif "price" in col:
+                price_col = col
+
+        for _, row in df.iterrows():
+
+            name = str(row[name_col])
+            country = str(row[country_col])
+            role = str(row[role_col])
+            base_price = int(row[price_col])
 
             cursor.execute("""
             INSERT INTO players(name,country,role,base_price,current_bid,team)
@@ -100,7 +122,7 @@ def bid(player_id):
         conn.close()
         return redirect("/")
 
-    # prevent lower bids
+    # prevent lower bid
     if bid_amount <= current_bid:
         conn.close()
         return redirect("/")
@@ -166,3 +188,7 @@ def logout():
 
     session.clear()
     return redirect("/login")
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
