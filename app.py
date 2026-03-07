@@ -19,7 +19,7 @@ def init_db():
     )
     """)
 
-    # PLAYERS TABLE
+    # PLAYERS TABLE (added team column)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS players(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -27,7 +27,8 @@ def init_db():
         country TEXT,
         role TEXT,
         base_price INTEGER,
-        current_bid INTEGER
+        current_bid INTEGER,
+        team TEXT
     )
     """)
 
@@ -37,8 +38,6 @@ def init_db():
     if count == 0:
 
         df = pd.read_excel("players.xlsx")
-
-        # normalize column names
         df.columns = df.columns.str.strip().str.lower()
 
         name_col = None
@@ -64,9 +63,9 @@ def init_db():
             base_price = int(row[price_col])
 
             cursor.execute("""
-            INSERT INTO players(name,country,role,base_price,current_bid)
-            VALUES(?,?,?,?,?)
-            """,(name,country,role,base_price,base_price))
+            INSERT INTO players(name,country,role,base_price,current_bid,team)
+            VALUES(?,?,?,?,?,?)
+            """,(name,country,role,base_price,base_price,"None"))
 
         conn.commit()
 
@@ -93,34 +92,37 @@ def home():
     return render_template("index.html", players=players, user=session["user"])
 
 
-@app.route("/role/<role>")
-def role(role):
-
-    if "user" not in session:
-        return redirect("/login")
-
-    conn = sqlite3.connect("players.db")
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT * FROM players WHERE role=?", (role,))
-    players = cursor.fetchall()
-
-    conn.close()
-
-    return render_template("index.html", players=players, user=session["user"])
-
-
 @app.route("/bid/<int:player_id>", methods=["POST"])
 def bid(player_id):
 
+    team = request.form["team"]
     bid_amount = int(request.form["bid"])
 
     conn = sqlite3.connect("players.db")
     cursor = conn.cursor()
 
     cursor.execute(
-        "UPDATE players SET current_bid=? WHERE id=?",
-        (bid_amount, player_id)
+        "SELECT current_bid, team FROM players WHERE id=?",
+        (player_id,)
+    )
+
+    player = cursor.fetchone()
+    current_bid = player[0]
+    last_team = player[1]
+
+    # prevent same team twice
+    if team == last_team:
+        conn.close()
+        return redirect("/")
+
+    # ensure bid is higher
+    if bid_amount <= current_bid:
+        conn.close()
+        return redirect("/")
+
+    cursor.execute(
+        "UPDATE players SET current_bid=?, team=? WHERE id=?",
+        (bid_amount, team, player_id)
     )
 
     conn.commit()
@@ -184,7 +186,3 @@ def login():
 def logout():
     session.clear()
     return redirect("/login")
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
