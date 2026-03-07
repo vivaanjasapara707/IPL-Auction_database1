@@ -1,3 +1,109 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>IPL Live Auction</title>
+
+<style>
+
+body{
+background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+font-family:Arial;
+color:white;
+margin:0;
+}
+
+.header{
+display:flex;
+justify-content:space-between;
+padding:20px 40px;
+font-size:30px;
+font-weight:bold;
+}
+
+.logout{
+background:#ff512f;
+padding:8px 14px;
+border-radius:6px;
+text-decoration:none;
+color:white;
+}
+
+table{
+width:90%;
+margin:auto;
+border-collapse:collapse;
+background:white;
+color:black;
+border-radius:12px;
+overflow:hidden;
+}
+
+th{
+background:#ff512f;
+color:white;
+padding:12px;
+}
+
+td{
+padding:10px;
+text-align:center;
+border-bottom:1px solid #ddd;
+}
+
+.price{
+color:#27ae60;
+font-weight:bold;
+}
+
+.team{
+color:#8e44ad;
+font-weight:bold;
+}
+
+input{
+padding:6px;
+margin:3px;
+}
+
+button{
+background:#ff512f;
+border:none;
+padding:6px 12px;
+color:white;
+border-radius:5px;
+cursor:pointer;
+}
+
+button:hover{
+background:#e84118;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="header">
+
+<div>🏏 IPL LIVE AUCTION</div>
+
+<div>
+
+👤 {{ user }}
+<a class="logout" href="/logout">Logout</a>
+
+</div>
+
+</div>
+
+<br>
+
+<table>
+
+<tr>
 <th>Player</th>
 <th>Country</th>
 <th>Role</th>
@@ -5,25 +111,26 @@
 <th>Current Bid</th>
 <th>Highest Bidder</th>
 <th>Bid</th>
+</tr>
 
 {% for p in players %}
 
 <tr>
 
-<td class="player">{{p[1]}}</td>
+<td>{{p[1]}}</td>
 <td>{{p[2]}}</td>
-<td class="role">{{p[3]}}</td>
+<td>{{p[3]}}</td>
 <td>₹ {{p[4]}} L</td>
 <td class="price">₹ {{p[5]}} L</td>
-<td>{{p[6]}}</td>
+<td class="team">{{p[6]}}</td>
 
 <td>
 
-<form action="/bid/{{p[0]}}" method="post">
+<form action="/bid/{{p[0]}}" method="POST">
 
-<input type="text" name="team" placeholder="Team Name" required>
+<input type="text" name="team" placeholder="Team" required>
 
-<input type="number" name="bid" required>
+<input type="number" name="bid" placeholder="Bid" required>
 
 <button type="submit">Bid</button>
 
@@ -34,3 +141,9 @@
 </tr>
 
 {% endfor %}
+
+</table>
+
+</body>
+
+</html>
